@@ -1,0 +1,23 @@
+# Local secrets
+include/config.local.h
+secrets.h
+*.local.*
+
+# PlatformIO / Arduino build outputs
+.pio/
+build/
+dist/
+
+# Python / tooling caches
+.venv/
+__pycache__/
+.cache/
+
+# Editor / OS noise
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
