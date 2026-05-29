@@ -7,6 +7,7 @@
 ## 現在の状態
 
 - 実装前の調査・設計段階。
+- GitHub repository: https://github.com/basashi365-web/esp32_radio
 - 第一候補ライブラリは `schreibfaul1/ESP32-audioI2S`。
 - ESP32-S3はPSRAM付きボードを前提にする。
 - MAX98357AとのI2S接続、候補局URL、OLED/ロータリー追加方針、Wi-Fi設定方式を調査済み。
