@@ -10,7 +10,9 @@
 - GitHub repository: https://github.com/basashi365-web/esp32_radio
 - 第一候補ライブラリは `schreibfaul1/ESP32-audioI2S`。
 - ESP32-S3はPSRAM付きボードを前提にする。
+- 表示器は `pi_radio` と同じ GM009606v4.3 OLED を使い、`SSD1306 128x64 / I2C 0x3C` として扱う方針。
 - MAX98357AとのI2S接続、候補局URL、OLED/ロータリー追加方針、Wi-Fi設定方式を調査済み。
+- 友人へ渡す将来構想として、ESP32-S3のUSB MSC設定モードで `WIFI.TXT` / `STATIONS.TXT` をPCから編集できる方式を後段候補にする。
 - `pi_radio` との差分は、Linux/mpv/systemd/NetworkManagerではなく、ESP32ファームウェア単体で再生・操作・設定保存を行う点。
 
 ## 主要ドキュメント
@@ -21,6 +23,7 @@
 - `docs/setup.md`: 次回の最小実験セットアップ入口。
 - `docs/troubleshooting.md`: 実装前に想定している失敗パターン。
 - `docs/development_notes.md`: 継続作業メモ。
+- `docs/usb_msc_config_plan.md`: USB接続でTXT設定を編集する将来構想。
 
 ## 最小実験方針
 
@@ -28,7 +31,8 @@
 2. MAX98357AをI2S 3線で接続する。
 3. `ESP32-audioI2S` の最小スケッチでWNYC MP3直ストリームを再生する。
 4. 音が出た後に、BBC / NHK / ABC のHLS/AAC局を個別に試す。
-5. 再生が安定してからOLED、KY-040、Wi-Fi設定、Web設定画面の順で追加する。
+5. 再生が安定してからOLED、KY-040、Wi-Fi設定の順で追加する。
+6. 友人配布向けには、Web設定画面またはUSB MSC TXT設定モードを後段で検討する。
 
 ## 参考元
 

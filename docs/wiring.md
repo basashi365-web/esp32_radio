@@ -19,7 +19,9 @@
 
 このGPIO案は仮。実ボードのピン表確認後に確定する。
 
-## OLED候補
+## OLED
+
+`pi_radio` と同じ GM009606v4.3 OLED を使う。`pi_radio` では `SSD1306 128x64 / I2C 0x3C` として点灯確認済み。
 
 | OLED | ESP32-S3 GPIO案 | 備考 |
 |---|---:|---|
@@ -28,7 +30,7 @@
 | VCC | 3.3V | モジュール仕様確認 |
 | GND | GND | 共通GND |
 
-`pi_radio` ではSSD1306 128x64 / I2C `0x3C` として点灯確認済み。`esp32_radio` では手元OLEDの型番を再確認する。
+`SCK` 表記の端子がある場合はI2Cの `SCL` として扱う。
 
 ## KY-040候補
 

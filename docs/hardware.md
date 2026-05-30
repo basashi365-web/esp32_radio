@@ -12,7 +12,7 @@
 | MAX98357A I2S Class-D mono amp | I2S DAC内蔵アンプ | 初期音声出力 |
 | 4Ωまたは8Ω小型スピーカー | 音声出力 | 初期実験用 |
 | 5V USB電源 | ESP32-S3とアンプ給電 | 電流余裕を確認 |
-| SSD1306/SH1106 OLED 128x64 | 状態表示 | Phase 2以降 |
+| GM009606v4.3 OLED | 状態表示 | Phase 2以降。`pi_radio` と同じ表示器 |
 | KY-040ロータリーエンコーダ | 音量/局切替 | Phase 3以降 |
 
 ## ESP32-S3
@@ -31,6 +31,7 @@
 - PSRAM容量。
 - Flash容量。
 - USB/JTAGや起動ストラップと競合しないGPIO。
+- ネイティブUSB Deviceを使える配線/USBポートか。
 
 ## MAX98357A
 
@@ -46,6 +47,7 @@ MAX98357AはI2S入力を受けるモノラルClass-Dアンプ。初期実験で�
 
 - 局候補は WNYC / BBC Radio 4 / ABC NewsRadio / NHK R1 を継承する。
 - OLEDには局名、状態、IP、音量を出す。
+- OLEDは `pi_radio` と同じ GM009606v4.3 を使い、`SSD1306 128x64 / I2C 0x3C` として扱う。
 - ロータリーは回転で音量、短押しで局切替を基本にする。
 
 移植しないもの:

@@ -12,6 +12,7 @@
 - `WNYC` はMP3直ストリームなので最も実験向き。
 - `BBC Radio 4`、`ABC NewsRadio`、`NHK R1` はHLS/AACとしてPC上では音声検出できたが、ESP32実機では `m3u8` リダイレクト、TLS、バッファ、地域/配信URL変更のリスクがある。
 - Web設定画面は最初から本格実装しない。最初は固定SSID + 固定局URLで音を出し、次に簡易AP/設定保存、最後にWeb UIを検討する。
+- 友人へ渡す段階では、ESP32-S3のUSB MSC設定モードでPCから `WIFI.TXT` / `STATIONS.TXT` を編集できる方式を後段候補にする。
 - `Edzelf/ESP32Radio-V2` は完成度の高いラジオアプリの参考にはなるが、最小実験の土台としては大きい。`esp_radio` では `ESP32-audioI2S` を使った薄い実装から始める方が `pi_radio` の派生として管理しやすい。
 
 ## 調査対象
@@ -189,7 +190,8 @@ MAX98357A側の主要ピン:
 
 ### Phase 2: 表示
 
-- SSD1306/SH1106 128x64 OLEDをI2C接続。
+- `pi_radio` と同じ GM009606v4.3 OLEDをI2C接続。
+- `pi_radio` では `SSD1306 128x64 / I2C 0x3C` として点灯確認済みなので、`esp_radio` でもまず同じ扱いにする。
 - 表示項目:
   - 接続中/再生中/エラー
   - SSIDまたはIPアドレス
@@ -216,13 +218,15 @@ MAX98357A側の主要ピン:
 | `WiFiMulti` で複数SSID | 複数環境に少し強い | まだビルド時秘密情報が残る | Phase 1.5 |
 | Serial経由で初回設定 | Web UI不要 | 現地運用では不便 | Phase 2候補 |
 | SoftAP + Captive Portal / WiFiManager系 | スマホから設定できる | 依存と状態管理が増える | Phase 3候補 |
+| USB MSC TXT設定モード | PCとUSBケーブルで `WIFI.TXT` / `STATIONS.TXT` を編集できる。友人配布時に分かりやすい | ESP32-S3専用寄り。PCとESP32の同時書き込みを避ける設計が必要 | Phase 4候補 |
 | 独自Web設定画面 + NVS/LittleFS保存 | `pi_radio` の操作感に近づく | 実装量が増え、音声再生とのリソース競合が出る | Phase 4候補 |
 
 推奨:
 
 - 最初は固定SSIDで実験する。
 - 秘密情報は `secrets.h` や `config.local.h` に分離し、`.gitignore` 対象にする。
-- 実用化段階で SoftAP + Web設定を入れる。
+- 実用化段階で SoftAP + Web設定、またはESP32-S3のUSB MSC TXT設定モードを入れる。
+- USB MSC方式の詳細は `docs/usb_msc_config_plan.md` に分離する。
 
 ## Web設定画面を入れるべきか
 
@@ -307,6 +311,7 @@ MAX98357A側の主要ピン:
 次段階:
 
 - SSD1306/SH1106 128x64 I2C OLED。
+- GM009606v4.3 OLED。`SSD1306 128x64 / I2C 0x3C` として開始。
 - KY-040ロータリーエンコーダ。
 - 複数局テーブル。
 - NVS/LittleFS設定保存。
@@ -315,6 +320,7 @@ MAX98357A側の主要ピン:
 後回し:
 
 - Web設定画面。
+- USB MSC TXT設定モード。
 - OTA。
 - MQTT。
 - SDカード局リスト。
