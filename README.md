@@ -10,6 +10,7 @@
 - GitHub repository: https://github.com/basashi365-web/esp32_radio
 - 第一候補ライブラリは `schreibfaul1/ESP32-audioI2S`。
 - ESP32-S3はPSRAM付きボードを前提にする。
+- スピーカーは購入済みの 2インチ / 50mm / 4Ω / 3W フルレンジスピーカーを使う。
 - 表示器は `pi_radio` と同じ GM009606v4.3 OLED を使い、`SSD1306 128x64 / I2C 0x3C` として扱う方針。
 - MAX98357AとのI2S接続、候補局URL、OLED/ロータリー追加方針、Wi-Fi設定方式を調査済み。
 - 友人へ渡す将来構想として、ESP32-S3のUSB MSC設定モードで `WIFI.TXT` / `STATIONS.TXT` をPCから編集できる方式を後段候補にする。
@@ -29,10 +30,11 @@
 
 1. PSRAM付きESP32-S3ボードを確認する。
 2. MAX98357AをI2S 3線で接続する。
-3. `ESP32-audioI2S` の最小スケッチでWNYC MP3直ストリームを再生する。
-4. 音が出た後に、BBC / NHK / ABC のHLS/AAC局を個別に試す。
-5. 再生が安定してからOLED、KY-040、Wi-Fi設定の順で追加する。
-6. 友人配布向けには、Web設定画面またはUSB MSC TXT設定モードを後段で検討する。
+3. 50mm / 4Ω / 3W フルレンジスピーカーを `SPK+` / `SPK-` に接続する。
+4. `ESP32-audioI2S` の最小スケッチでWNYC MP3直ストリームを再生する。
+5. 音が出た後に、BBC / NHK / ABC のHLS/AAC局を個別に試す。
+6. 再生が安定してからOLED、KY-040、Wi-Fi設定の順で追加する。
+7. 友人配布向けには、Web設定画面またはUSB MSC TXT設定モードを後段で検討する。
 
 ## 参考元
 

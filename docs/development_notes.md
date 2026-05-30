@@ -11,15 +11,17 @@
 - Web設定画面は初期実験には入れず、再生安定後の追加候補にする。
 - 表示器は `pi_radio` と同じ GM009606v4.3 OLED を使う方針。`SSD1306 128x64 / I2C 0x3C` として扱う。
 - 友人へ渡す将来構想として、ESP32-S3のUSB MSC設定モードでPCから `WIFI.TXT` / `STATIONS.TXT` を編集する方式を最後に試す候補へ追加した。
+- スピーカーは購入済みの2インチ / 50mm / 4Ω / 3Wフルレンジスピーカーを使う。
 
 ## 次回作業入口
 
 1. 実ボード型番とPSRAM容量を確認する。
 2. PlatformIOプロジェクトを作る。
 3. `include/config.example.h` とgit除外の `include/config.local.h` 方針を作る。
-4. MAX98357A + WNYC の最小再生スケッチを作る。
-5. Serialログと実機結果をこのdocsへ追記する。
-6. 再生とOLED/ロータリーが安定した後、USB MSC TXT設定モードを調査する。
+4. 50mm / 4Ω / 3WスピーカーをMAX98357Aへ接続する。
+5. MAX98357A + WNYC の最小再生スケッチを作る。
+6. Serialログと実機結果をこのdocsへ追記する。
+7. 再生とOLED/ロータリーが安定した後、USB MSC TXT設定モードを調査する。
 
 ## 記録ルール
 
