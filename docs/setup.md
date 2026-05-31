@@ -18,7 +18,7 @@ PlatformIOで始める場合、秘密情報は `include/config.local.h` などgi
 1. ESP32-S3ボードの型番とPSRAM容量を確認する。
 2. `ESP.getPsramSize()` をSerialに出す最小スケッチを作る。
 3. MAX98357Aを `GPIO4/5/6` 仮配線で接続する。
-4. 50mm / 4Ω / 3W フルレンジスピーカーをMAX98357Aの `SPK+` / `SPK-` へ接続する。
+4. 53mm / 4Ω / 3W フルレンジスピーカーをMAX98357Aの `SPK+` / `SPK-` へ接続する。
 5. WNYC `https://fm939.wnyc.org/wnycfm` を `audio.connecttohost()` で再生する。
 6. 音量は低めから開始する。
 7. Serialログに接続先、codec、エラー、再接続状況を出す。
