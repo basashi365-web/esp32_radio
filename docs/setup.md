@@ -2,7 +2,7 @@
 
 ## 現在の段階
 
-PlatformIO最小プロジェクト作成済み。次回は実機への書き込みとSerialログ確認から始める。
+PlatformIO初期ファームウェア作成済み。COM24への書き込み、OLED表示、KY-040操作、WNYC音出しまで実機確認済み。
 
 ## 開発環境候補
 
@@ -35,7 +35,7 @@ PlatformIOで始める場合、秘密情報は `include/config.local.h` などgi
 6. OLEDに `esp32_radio`、局名、音量、状態、IPが出るか確認する。
 7. KY-040の回転で音量、短押しで局送りが動くか確認する。
 8. `ESP.getPsramSize()` / Flash size / Wi-Fi接続先 / codec / エラー / 再接続状況をSerialで確認する。
-9. WNYC `https://fm939.wnyc.org/wnycfm` の音が出るか確認する。Serial上ではMP3 stream readyまで確認済み。
+9. WNYC `https://fm939.wnyc.org/wnycfm` の音が出るか確認する。SD/MODEを3.3Vへ接続した状態で音出し確認済み。
 10. 音量は低めから開始する。
 
 ## 2026-06-02 実機ログメモ

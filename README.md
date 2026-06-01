@@ -6,7 +6,7 @@
 
 ## 現在の状態
 
-- PlatformIO最小ファームウェア実装済み。COM24へ書き込み、ESP32-S3 / PSRAM / OLED / Wi-Fi / WNYC stream ready までSerial確認済み。
+- PlatformIO初期ファームウェア実装済み。COM24へ書き込み、ESP32-S3 / PSRAM / OLED / Wi-Fi / WNYC音出しまで実機確認済み。
 - GitHub repository: https://github.com/basashi365-web/esp32_radio
 - 第一候補ライブラリは `schreibfaul1/ESP32-audioI2S`。
 - ESP32-S3はPSRAM付きボードを前提にする。今回使う実物基板は写真上で `ESP32-S3-WROOM-1 N16R8` と確認済み。
@@ -14,7 +14,9 @@
 - 表示器は `pi_radio` と同じ GM009606v4.3 OLED を使い、`SSD1306 128x64 / I2C 0x3C` として扱う方針。
 - 基板・周辺部品の共有写真は `D:\data\codex\shared_assets\hardware\esp32_radio\20260601_board_photos` に保存済み。
 - MAX98357AとのI2S接続、候補局URL、OLED/ロータリー追加方針、Wi-Fi設定方式を調査済み。
-- OLEDはI2C `0x3C` で検出済み。KY-040は音量変更と短押し局送りのログ確認済み。
+- MAX98357Aは `VIN=5V`、`SD/MODE=3.3V` で音出し確認済み。GAINはオープンのまま。
+- OLEDはI2C `0x3C` で検出済み。FreeSans系フォントの局名/音量表示を採用済み。
+- KY-040は回転で音量、短押しで選曲。未検証局は `not tested` 表示だけにして、自動接続しない。
 - 友人へ渡す将来構想として、ESP32-S3のUSB MSC設定モードで `WIFI.TXT` / `STATIONS.TXT` をPCから編集できる方式を後段候補にする。
 - `pi_radio` との差分は、Linux/mpv/systemd/NetworkManagerではなく、ESP32ファームウェア単体で再生・操作・設定保存を行う点。
 
@@ -33,9 +35,9 @@
 1. PSRAM付きESP32-S3ボードを確認する。
 2. MAX98357AをI2S 3線で接続する。
 3. 53mm / 4Ω / 3W フルレンジスピーカーを `SPK+` / `SPK-` に接続する。
-4. `ESP32-audioI2S` の最小スケッチでWNYC MP3直ストリームを再生する。
-5. 音が出た後に、BBC / NHK / ABC のHLS/AAC局を個別に試す。
-6. 再生が安定してからOLED、KY-040、Wi-Fi設定の順で追加する。
+4. `ESP32-audioI2S` の初期スケッチでWNYC MP3直ストリームを再生する。
+5. OLEDへ大きい局名、中サイズの音量、小さい `stream ok` / `stream lost` / `not tested` を出す。
+6. KY-040で音量変更と選曲を行う。
 7. 友人配布向けには、Web設定画面またはUSB MSC TXT設定モードを後段で検討する。
 
 ## 参考元
