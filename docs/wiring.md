@@ -2,7 +2,8 @@
 
 ## 初期方針
 
-まずはESP32-S3とMAX98357Aだけで音を出す。OLEDとロータリーエンコーダは、WNYC再生が安定してから追加する。
+ESP32-S3、MAX98357A、OLED、ロータリーエンコーダを接続済みとして扱う。
+初期スケッチでは、OLEDへ状態/IP/音量を出し、KY-040で音量変更と局送りを行う。
 
 ## MAX98357A I2S
 
@@ -28,8 +29,8 @@
 
 | OLED | ESP32-S3 GPIO案 | 備考 |
 |---|---:|---|
-| SDA | GPIO8 | 仮 |
-| SCL | GPIO9 | 仮 |
+| SDA | GPIO8 | 初期実装 |
+| SCL | GPIO9 | 初期実装 |
 | VCC | 3.3V | モジュール仕様確認 |
 | GND | GND | 共通GND |
 
@@ -39,9 +40,9 @@
 
 | KY-040 | ESP32-S3 GPIO案 | 備考 |
 |---|---:|---|
-| CLK / A | GPIO10 | 仮 |
-| DT / B | GPIO11 | 仮 |
-| SW | GPIO12 | 仮。pull-up想定 |
+| CLK / A | GPIO10 | 初期実装。内部pull-up |
+| DT / B | GPIO11 | 初期実装。内部pull-up |
+| SW | GPIO12 | 初期実装。内部pull-up |
 | + | 3.3V | モジュール仕様確認 |
 | GND | GND | 共通GND |
 

@@ -15,13 +15,12 @@
 
 ## 次回作業入口
 
-1. 実ボード型番とPSRAM容量を確認する。
-2. PlatformIOプロジェクトを作る。
-3. `include/config.example.h` とgit除外の `include/config.local.h` 方針を使う。
-4. 53mm / 4Ω / 3WスピーカーをMAX98357Aへ接続する。
-5. MAX98357A + WNYC の最小再生スケッチを作る。
-6. Serialログと実機結果をこのdocsへ追記する。
-7. 再生とOLED/ロータリーが安定した後、USB MSC TXT設定モードを調査する。
+1. PlatformIO/Arduino側でPSRAM容量を確認する。
+2. 53mm / 4Ω / 3WスピーカーをMAX98357Aへ接続する。
+3. `platformio.ini` のボード/PSRAM設定が実機に合うか確認する。
+4. MAX98357A + WNYC の最小再生スケッチをCOM24へ書き込む。
+5. Serialログと実機結果をこのdocsへ追記する。
+6. 再生とOLED/ロータリーが安定した後、USB MSC TXT設定モードを調査する。
 
 ## 2026-06-01 実機接続メモ
 
@@ -30,6 +29,18 @@
 - 複数SSIDがある環境では、単純なRSSI最強ではなく、前回成功SSIDをESP32 Arduino `Preferences` に保存して次回起動時に優先する。
 - 接続成功SSIDは `Preferences` namespace `wifi` / key `last_ssid` に保存する設計にする。
 - 実パスワードは `include/config.local.h` のみに置き、repoやAI Docsへ入れない。
+- PlatformIO最小プロジェクトを追加した。`src/main.cpp` はPSRAM/Flash情報をSerialへ出し、SSID prefix一致候補から前回成功SSIDを優先してWi-Fi接続し、WNYCをMAX98357AへI2S出力する初期スケッチ。
+- 標準PlatformIO `espressif32` では `ESP32-audioI2S` 3.4.6 が `<span>` を要求してビルド失敗したため、`pioarduino/platform-espressif32` stableへ切り替えた。
+- `ESP32-audioI2S` 3.4.6 の `Audio.h` が `std::optional` を使うが `<optional>` を直接includeしていないため、`platformio.ini` の `build_flags` で `-I include` と `-include optional` を追加した。Cファイルにも同じflagが当たるため、`include/optional` にC++時だけ本物の標準ヘッダへ渡す小さなshimを置いた。
+- USBケーブル交換後、`pio run -t upload` がCOM24へ成功した。低速 `upload_speed = 115200` と `PYTHONIOENCODING=utf-8` / `PYTHONUTF8=1` を使うとPlatformIOの進捗文字によるcp932例外を避けやすい。
+- SerialログでESP32-S3 rev 2、Flash 16MB、PSRAM 8MBを確認した。
+- Wi-Fiはprefix一致候補を見つけ、`Preferences` の前回成功SSID優先で接続成功した。
+- OLEDとKY-040が接続済みになったため、初期スケッチへSSD1306 OLED表示、I2C scan、KY-040音量変更、短押し局送りを追加した。
+- 実機ログでOLEDはI2C `0x3C` として検出できた。
+- WNYCはSSL接続、MP3Decoder初期化、`stream ready`、MPEG-1 Layer III / 32kHz / 96kbps まで確認できた。実音声はスピーカー側で要耳確認。
+- KY-040の回転で音量変更ログを確認できた。短押し局送りもログ上は動いている。
+- BBC Radio 4の旧HLS URLは実機で `HTTP/1.1 410 Gone`。2026-06-02時点で見つかるnon-UK向けHLS URLへ差し替えた。
+- NHK R1は候補URLでDNS失敗が一度出た。再テストが必要。
 
 ## 記録ルール
 
