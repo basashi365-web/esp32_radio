@@ -52,6 +52,9 @@ PlatformIOで始める場合、秘密情報は `include/config.local.h` などgi
 - OLEDの局名/音量はFreeSans系フォントを使う。最下段は小さいデフォルトフォントのまま、`stream ok` など短い状態だけを出す。
 - WNYCが無音になる場合、OLED下段が `stream ok` のままならI2S/アンプ/電源側、`stream lost` や再接続表示ならネットワーク/ストリーム側を疑う。
 - KY-040クリックは選曲。未検証局は `not tested` と表示し、WNYC以外のHLS局は音出し安定まで自動接続しない。
+- BBC Radio 4は、WNYCの次に有効化した実機テストで音出しOK。
+- ABC NewsRadioは `stream ok` まで到達したが無音。深夜帯の局側状態もあり得るため、別時間帯で再確認する。
+- ABC/NHKを有効化すると選局時に長時間停止または完全フリーズすることがある。常用確認版ではWNYC/BBCのみ有効化し、ABC/NHKは `not tested` 表示だけにする。
 
 ## Wi-Fi設定
 

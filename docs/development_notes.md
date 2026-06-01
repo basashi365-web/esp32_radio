@@ -49,6 +49,12 @@
 - WNYCが時々無音になるとの報告。ログ上は `slow stream, dropouts are possible` が出ていたため、ストリーム停止/再接続とアンプ側無音を切り分ける必要がある。`audio.isRunning()` を監視し、停止が続く場合はOLED下段に `stream lost`、再接続時は `stream ok` を出す。
 - OLEDフォントはFreeSans系で確定。最下段は内部イベント名を出さず、人間向けの `tuning...` / `stream ok` / `stream lost` / `not tested` だけにする。
 - KY-040クリックは選曲操作にする。未検証局は局名表示だけ切り替え、再生は開始しないことでABC/NHKの長時間ブロックを避ける。
+- BBC Radio 4はBBCだけ有効化した実機テストで音出しOK。WNYCのMP3直ストリームだけでなく、少なくともBBCのHLS入口はESP32-S3 + ESP32-audioI2S + MAX98357A構成で再生できる。
+- 次は同じ手順でABC NewsRadioだけを追加有効化し、フリーズ/無音/`stream ok` を確認する。
+- ABC NewsRadioは `stream ok` までは到達。ただし実音声は出なかった。深夜帯の無音、局側の番組状態、またはHLS/AACの音声処理差を疑い、後日別時間帯でも再確認する。
+- 次はNHK R1を追加有効化し、同じく `stream ok` と実音声を切り分ける。
+- ABC表示中にクリックすると、次局へ移るまで約10秒停止する。NHK R1は `tuning...` で止まり、その後クリック/音量操作も効かない完全フリーズへ進んだ。初期常用版ではABC/NHKを再び無効化し、WNYC/BBCだけを有効局にする。
+- ABC/NHKは夜間の局側状態だけでなく、`audio.connecttohost()` またはHLS処理がブロックしてUIループを止めるリスクがある。再検証は別時間帯に、まずSerialログを取りながら1局ずつ行う。
 
 ## 記録ルール
 

@@ -48,7 +48,7 @@ struct Station {
 
 Station stations[] = {
     {"WNYC FM", "https://fm939.wnyc.org/wnycfm", true},
-    {"BBC R4", "https://a.files.bbci.co.uk/ms6/live/3441A116-B12E-4D2F-ACA8-C1984642FA4B/audio/simulcast/hls/nonuk/audio_syndication_low_sbr_v1/cfs/bbc_radio_fourfm.m3u8", false},
+    {"BBC R4", "https://a.files.bbci.co.uk/ms6/live/3441A116-B12E-4D2F-ACA8-C1984642FA4B/audio/simulcast/hls/nonuk/audio_syndication_low_sbr_v1/cfs/bbc_radio_fourfm.m3u8", true},
     {"ABC", "https://mediaserviceslive.akamaized.net/hls/live/2038310/newsradio/master.m3u8", false},
     {"NHK R1", "https://radio-stream.nhk.jp/hls/live/2023229/nhkradiruakr1/master.m3u8", false},
 };
