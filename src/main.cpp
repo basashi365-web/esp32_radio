@@ -2,6 +2,9 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Audio.h>
+#include <Fonts/FreeSans12pt7b.h>
+#include <Fonts/FreeSans9pt7b.h>
+#include <Fonts/FreeSansBold12pt7b.h>
 #include <Preferences.h>
 #include <WiFi.h>
 #include <Wire.h>
@@ -35,17 +38,19 @@ constexpr unsigned long WIFI_CONNECT_TIMEOUT_MS = 15000;
 constexpr unsigned long DISPLAY_UPDATE_MS = 750;
 constexpr unsigned long BUTTON_DEBOUNCE_MS = 250;
 constexpr unsigned long AUDIO_RETRY_MS = 15000;
+constexpr unsigned long AUDIO_RUNNING_GRACE_MS = 10000;
 
 struct Station {
   const char* name;
   const char* url;
+  bool enabled;
 };
 
 Station stations[] = {
-    {"WNYC FM", "https://fm939.wnyc.org/wnycfm"},
-    {"BBC R4", "https://a.files.bbci.co.uk/ms6/live/3441A116-B12E-4D2F-ACA8-C1984642FA4B/audio/simulcast/hls/nonuk/audio_syndication_low_sbr_v1/cfs/bbc_radio_fourfm.m3u8"},
-    {"ABC News", "https://mediaserviceslive.akamaized.net/hls/live/2038310/newsradio/master.m3u8"},
-    {"NHK R1", "https://radio-stream.nhk.jp/hls/live/2023229/nhkradiruakr1/master.m3u8"},
+    {"WNYC FM", "https://fm939.wnyc.org/wnycfm", true},
+    {"BBC R4", "https://a.files.bbci.co.uk/ms6/live/3441A116-B12E-4D2F-ACA8-C1984642FA4B/audio/simulcast/hls/nonuk/audio_syndication_low_sbr_v1/cfs/bbc_radio_fourfm.m3u8", false},
+    {"ABC", "https://mediaserviceslive.akamaized.net/hls/live/2038310/newsradio/master.m3u8", false},
+    {"NHK R1", "https://radio-stream.nhk.jp/hls/live/2023229/nhkradiruakr1/master.m3u8", false},
 };
 
 Audio audio;
@@ -63,6 +68,8 @@ int lastRotaryClk = HIGH;
 unsigned long lastDisplayUpdate = 0;
 unsigned long lastButtonAt = 0;
 unsigned long lastAudioRetryAt = 0;
+unsigned long lastStreamOkAt = 0;
+bool streamWasRunning = false;
 
 struct WifiCandidate {
   String ssid;
@@ -132,22 +139,22 @@ void drawDisplay(bool force = false) {
   lastDisplayUpdate = millis();
 
   display.clearDisplay();
-  display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 0);
-  display.print("esp32_radio");
-  display.setCursor(0, 12);
+
+  display.setFont(&FreeSansBold12pt7b);
+  display.setCursor(0, 22);
   display.print(stations[currentStation].name);
-  display.setCursor(0, 24);
+
+  display.setFont(&FreeSans12pt7b);
+  display.setCursor(0, 45);
   display.print("Vol ");
   display.print(currentVolume);
-  display.print("/");
-  display.print(AUDIO_VOLUME_MAX);
-  display.setCursor(0, 36);
-  display.print(statusLine.substring(0, 21));
-  display.setCursor(0, 48);
-  String bottom = wifiIp.isEmpty() ? audioLine : wifiIp;
-  display.print(bottom.substring(0, 21));
+
+  display.setFont(nullptr);
+  display.setTextSize(1);
+  display.setCursor(0, 52);
+  String stream = audioLine.isEmpty() ? statusLine : audioLine;
+  display.print(stream.substring(0, 21));
   display.display();
 }
 
@@ -286,14 +293,23 @@ void printBoardInfo() {
 
 void startAudio() {
   Station& station = stations[currentStation];
+  if (!station.enabled) {
+    setStatus("select only");
+    setAudioLine("not tested");
+    Serial.printf("[audio] station disabled for now: %s\n", station.name);
+    drawDisplay(true);
+    return;
+  }
   setStatus("audio start");
-  setAudioLine(station.name);
+  setAudioLine("tuning...");
   Serial.printf("[audio] station: %s\n", station.name);
   Serial.printf("[audio] url: %s\n", station.url);
   audio.setVolume(currentVolume);
   bool started = audio.connecttohost(station.url);
   Serial.printf("[audio] connecttohost result=%s\n", started ? "true" : "false");
   lastAudioRetryAt = millis();
+  lastStreamOkAt = started ? millis() : 0;
+  streamWasRunning = false;
   drawDisplay(true);
 }
 
@@ -301,7 +317,9 @@ void changeStation(int direction) {
   int stationCount = static_cast<int>(sizeof(stations) / sizeof(stations[0]));
   currentStation = (currentStation + direction + stationCount) % stationCount;
   Serial.printf("[station] selected %d: %s\n", currentStation, stations[currentStation].name);
-  audio.stopSong();
+  if (audio.isRunning()) {
+    audio.stopSong();
+  }
   startAudio();
 }
 
@@ -332,7 +350,16 @@ void pollRotary() {
 
 void maybeRetryAudio() {
   if (audio.isRunning()) {
+    if (!streamWasRunning) {
+      setAudioLine("stream ok");
+      streamWasRunning = true;
+    }
+    lastStreamOkAt = millis();
     return;
+  }
+  if (streamWasRunning && millis() - lastStreamOkAt > AUDIO_RUNNING_GRACE_MS) {
+    setAudioLine("stream lost");
+    streamWasRunning = false;
   }
   if (millis() - lastAudioRetryAt < AUDIO_RETRY_MS) {
     return;
@@ -343,10 +370,13 @@ void maybeRetryAudio() {
 
 void myAudioInfo(Audio::msg_t msg) {
   Serial.printf("[%s] %s\n", msg.s, msg.msg);
-  if (strcmp(msg.s, "streamtitle") == 0 || strcmp(msg.s, "codec") == 0 || strcmp(msg.s, "bitrate") == 0) {
-    audioLine = msg.msg;
-  } else {
-    audioLine = msg.s;
+  if (strcmp(msg.s, "info") == 0 && strstr(msg.msg, "stream ready") != nullptr) {
+    audioLine = "stream ok";
+    lastStreamOkAt = millis();
+    streamWasRunning = true;
+  } else if (strcmp(msg.s, "station_name") == 0 || strcmp(msg.s, "streamtitle") == 0) {
+    audioLine = "stream ok";
+    lastStreamOkAt = millis();
   }
 }
 

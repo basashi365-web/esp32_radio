@@ -46,6 +46,12 @@ PlatformIOで始める場合、秘密情報は `include/config.local.h` などgi
 - WNYCはSSL接続、MP3デコード初期化、`stream ready` まで確認。
 - BBC Radio 4の旧HLS URLは `410 Gone` になったため、局URLを差し替えた。
 - NHK R1はDNS失敗が一度出たため再確認する。
+- ABC News / NHK R1 などのHLS局は、接続中に操作が長く止まることがあるため、初期音出しが終わるまではWNYCだけを局送り対象にする。
+- MAX98357AのGAINはオープンでよい。SD/MODEはオープンにせず、初期確認では3.3Vへ接続してアンプをONにする。
+- OLED表示は、上半分を局名の大きい表示、中央を中サイズの音量表示、最下段を小さいストリーム/IP状態表示にする。
+- OLEDの局名/音量はFreeSans系フォントを使う。最下段は小さいデフォルトフォントのまま、`stream ok` など短い状態だけを出す。
+- WNYCが無音になる場合、OLED下段が `stream ok` のままならI2S/アンプ/電源側、`stream lost` や再接続表示ならネットワーク/ストリーム側を疑う。
+- KY-040クリックは選曲。未検証局は `not tested` と表示し、WNYC以外のHLS局は音出し安定まで自動接続しない。
 
 ## Wi-Fi設定
 
