@@ -37,6 +37,7 @@ constexpr uint8_t AUDIO_VOLUME_INITIAL = 3;
 constexpr unsigned long WIFI_CONNECT_TIMEOUT_MS = 15000;
 constexpr unsigned long DISPLAY_UPDATE_MS = 750;
 constexpr unsigned long BUTTON_DEBOUNCE_MS = 250;
+constexpr unsigned long BUTTON_LONG_PRESS_MS = 1500;
 constexpr unsigned long AUDIO_RETRY_MS = 15000;
 constexpr unsigned long AUDIO_RUNNING_GRACE_MS = 10000;
 
@@ -70,6 +71,10 @@ unsigned long lastButtonAt = 0;
 unsigned long lastAudioRetryAt = 0;
 unsigned long lastStreamOkAt = 0;
 bool streamWasRunning = false;
+bool stoppedMode = false;
+bool buttonWasPressed = false;
+bool longPressHandled = false;
+unsigned long buttonPressedAt = 0;
 
 struct WifiCandidate {
   String ssid;
@@ -147,8 +152,12 @@ void drawDisplay(bool force = false) {
 
   display.setFont(&FreeSans12pt7b);
   display.setCursor(0, 45);
-  display.print("Vol ");
-  display.print(currentVolume);
+  if (stoppedMode) {
+    display.print("stopped");
+  } else {
+    display.print("Vol ");
+    display.print(currentVolume);
+  }
 
   display.setFont(nullptr);
   display.setTextSize(1);
@@ -292,6 +301,12 @@ void printBoardInfo() {
 }
 
 void startAudio() {
+  if (stoppedMode) {
+    setStatus("stopped");
+    setAudioLine("wifi off");
+    drawDisplay(true);
+    return;
+  }
   Station& station = stations[currentStation];
   if (!station.enabled) {
     setStatus("select only");
@@ -317,15 +332,70 @@ void changeStation(int direction) {
   int stationCount = static_cast<int>(sizeof(stations) / sizeof(stations[0]));
   currentStation = (currentStation + direction + stationCount) % stationCount;
   Serial.printf("[station] selected %d: %s\n", currentStation, stations[currentStation].name);
+  if (stoppedMode) {
+    setStatus("stopped");
+    setAudioLine("wifi off");
+    drawDisplay(true);
+    return;
+  }
   if (audio.isRunning()) {
     audio.stopSong();
   }
   startAudio();
 }
 
+void enterStoppedMode() {
+  if (stoppedMode) {
+    return;
+  }
+  Serial.println("[control] entering stopped mode");
+  if (audio.isRunning()) {
+    audio.stopSong();
+  } else {
+    audio.stopSong();
+  }
+  WiFi.disconnect(false);
+  WiFi.mode(WIFI_OFF);
+  stoppedMode = true;
+  streamWasRunning = false;
+  lastStreamOkAt = 0;
+  setStatus("stopped");
+  setAudioLine("wifi off");
+  drawDisplay(true);
+}
+
+void exitStoppedMode() {
+  if (!stoppedMode) {
+    return;
+  }
+  Serial.println("[control] leaving stopped mode");
+  stoppedMode = false;
+  setStatus("wifi resume");
+  setAudioLine("wake...");
+  drawDisplay(true);
+  if (!connectWifi()) {
+    stoppedMode = true;
+    setStatus("stopped");
+    setAudioLine("wifi failed");
+    drawDisplay(true);
+    return;
+  }
+  startAudio();
+}
+
+bool wakeIfStopped() {
+  if (!stoppedMode) {
+    return false;
+  }
+  exitStoppedMode();
+  return true;
+}
+
 void setVolume(uint8_t volume) {
   currentVolume = constrain(volume, AUDIO_VOLUME_MIN, AUDIO_VOLUME_MAX);
-  audio.setVolume(currentVolume);
+  if (!stoppedMode) {
+    audio.setVolume(currentVolume);
+  }
   Serial.printf("[volume] %u\n", currentVolume);
   drawDisplay(true);
 }
@@ -333,6 +403,10 @@ void setVolume(uint8_t volume) {
 void pollRotary() {
   int clk = digitalRead(ROTARY_CLK_PIN);
   if (clk != lastRotaryClk && clk == LOW) {
+    if (wakeIfStopped()) {
+      lastRotaryClk = clk;
+      return;
+    }
     int dt = digitalRead(ROTARY_DT_PIN);
     if (dt != clk && currentVolume < AUDIO_VOLUME_MAX) {
       setVolume(currentVolume + 1);
@@ -342,13 +416,41 @@ void pollRotary() {
   }
   lastRotaryClk = clk;
 
-  if (digitalRead(ROTARY_SW_PIN) == LOW && millis() - lastButtonAt > BUTTON_DEBOUNCE_MS) {
-    lastButtonAt = millis();
-    changeStation(1);
+  bool buttonPressed = digitalRead(ROTARY_SW_PIN) == LOW;
+  unsigned long now = millis();
+
+  if (buttonPressed && !buttonWasPressed) {
+    buttonWasPressed = true;
+    longPressHandled = false;
+    buttonPressedAt = now;
+  }
+
+  if (buttonPressed && !longPressHandled && now - buttonPressedAt >= BUTTON_LONG_PRESS_MS) {
+    longPressHandled = true;
+    lastButtonAt = now;
+    if (stoppedMode) {
+      exitStoppedMode();
+    } else {
+      enterStoppedMode();
+    }
+  }
+
+  if (!buttonPressed && buttonWasPressed) {
+    buttonWasPressed = false;
+    if (!longPressHandled && now - lastButtonAt > BUTTON_DEBOUNCE_MS) {
+      lastButtonAt = now;
+      if (wakeIfStopped()) {
+        return;
+      }
+      changeStation(1);
+    }
   }
 }
 
 void maybeRetryAudio() {
+  if (stoppedMode || !stations[currentStation].enabled) {
+    return;
+  }
   if (audio.isRunning()) {
     if (!streamWasRunning) {
       setAudioLine("stream ok");
@@ -409,7 +511,9 @@ void setup() {
 }
 
 void loop() {
-  audio.loop();
+  if (!stoppedMode) {
+    audio.loop();
+  }
   pollRotary();
   maybeRetryAudio();
   drawDisplay();

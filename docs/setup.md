@@ -55,6 +55,7 @@ PlatformIOで始める場合、秘密情報は `include/config.local.h` などgi
 - BBC Radio 4は、WNYCの次に有効化した実機テストで音出しOK。
 - ABC NewsRadioは `stream ok` まで到達したが無音。深夜帯の局側状態もあり得るため、別時間帯で再確認する。
 - ABC/NHKを有効化すると選局時に長時間停止または完全フリーズすることがある。常用確認版ではWNYC/BBCのみ有効化し、ABC/NHKは `not tested` 表示だけにする。
+- KY-040長押しで通信停止/待機へ入る。停止中はOLEDの音量表示位置に `stopped`、下段に `wifi off` を出し、Wi-FiをOFFにする。KY-040を回す、または押すと復帰する。実機確認済み。
 
 ## Wi-Fi設定
 
