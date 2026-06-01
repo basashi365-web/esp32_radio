@@ -19,6 +19,9 @@
 
 このGPIO案は仮。実ボードのピン表確認後に確定する。
 
+2026-06-01に今回使うESP32-S3-WROOM-1 N16R8基板とMAX98357Aの表裏写真を共有資産として保存した。
+配線を確定するときは `D:\data\codex\shared_assets\hardware\esp32_radio\20260601_board_photos` の表裏写真でシルク印字を確認する。
+
 ## OLED
 
 `pi_radio` と同じ GM009606v4.3 OLED を使う。`pi_radio` では `SSD1306 128x64 / I2C 0x3C` として点灯確認済み。

@@ -9,9 +9,10 @@
 - 実装前の調査・設計段階。
 - GitHub repository: https://github.com/basashi365-web/esp32_radio
 - 第一候補ライブラリは `schreibfaul1/ESP32-audioI2S`。
-- ESP32-S3はPSRAM付きボードを前提にする。
+- ESP32-S3はPSRAM付きボードを前提にする。今回使う実物基板は写真上で `ESP32-S3-WROOM-1 N16R8` と確認済み。
 - スピーカーは購入済みの 2インチ級 / 53mm / 4Ω / 3W フルレンジスピーカーを使う。
 - 表示器は `pi_radio` と同じ GM009606v4.3 OLED を使い、`SSD1306 128x64 / I2C 0x3C` として扱う方針。
+- 基板・周辺部品の共有写真は `D:\data\codex\shared_assets\hardware\esp32_radio\20260601_board_photos` に保存済み。
 - MAX98357AとのI2S接続、候補局URL、OLED/ロータリー追加方針、Wi-Fi設定方式を調査済み。
 - 友人へ渡す将来構想として、ESP32-S3のUSB MSC設定モードで `WIFI.TXT` / `STATIONS.TXT` をPCから編集できる方式を後段候補にする。
 - `pi_radio` との差分は、Linux/mpv/systemd/NetworkManagerではなく、ESP32ファームウェア単体で再生・操作・設定保存を行う点。

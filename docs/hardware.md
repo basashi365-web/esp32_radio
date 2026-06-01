@@ -8,16 +8,26 @@
 
 | 部品 | 用途 | 状態 |
 |---|---|---|
-| ESP32-S3 PSRAM付き開発ボード | Wi-Fi受信、デコード、I2S出力 | 必須候補 |
+| ESP32-S3-WROOM-1 N16R8 開発ボード | Wi-Fi受信、デコード、I2S出力 | 実物写真確認済み |
 | MAX98357A I2S Class-D mono amp | I2S DAC内蔵アンプ | 初期音声出力 |
 | 2インチ級 / 53mm / 4Ω / 3W フルレンジスピーカー | 音声出力 | 購入済み。MAX98357Aの初期実験用 |
 | 5V USB電源 | ESP32-S3とアンプ給電 | 電流余裕を確認 |
 | GM009606v4.3 OLED | 状態表示 | Phase 2以降。`pi_radio` と同じ表示器 |
 | KY-040ロータリーエンコーダ | 音量/局切替 | Phase 3以降 |
 
+## 実物写真
+
+今回使う基板・周辺部品のトリミング済み写真は、他プロジェクトからも参照できる共有フォルダに保存した。
+
+- `D:\data\codex\shared_assets\hardware\esp32_radio\20260601_board_photos`
+- 元写真: `C:\Users\yuko\Desktop\FTP\20260601_*.jpg`
+- 共有用写真: ESP32-S3 N16R8表裏、MAX98357A表裏、I2C OLED表裏、KY-040、コンタクトシート。
+
+ESP32-S3基板のモジュール刻印は写真上で `ESP32-S3-WROOM-1 N16R8` と読める。以前の Freenove ESP32-S3 Cam とは別個体として扱う。
+
 ## ESP32-S3
 
-`ESP32-audioI2S` はPSRAMを必要とするため、PSRAM付きESP32-S3を前提にする。
+`ESP32-audioI2S` はPSRAMを必要とするため、PSRAM付きESP32-S3を前提にする。今回の実物写真では `ESP32-S3-WROOM-1 N16R8` の刻印を確認したため、初期実験の第一候補はこのボードにする。
 
 推奨:
 
@@ -27,9 +37,7 @@
 
 次回確認すること:
 
-- 実ボードの型番。
-- PSRAM容量。
-- Flash容量。
+- 実ボードの型番は写真上では `ESP32-S3-WROOM-1 N16R8`。PlatformIO/Arduino側からもFlash/PSRAM認識を確認する。
 - USB/JTAGや起動ストラップと競合しないGPIO。
 - ネイティブUSB Deviceを使える配線/USBポートか。
 
