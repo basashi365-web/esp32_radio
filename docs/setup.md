@@ -16,22 +16,52 @@ PlatformIOで始める場合、秘密情報は `include/config.local.h` などgi
 ## 最小実験の入口
 
 1. ESP32-S3ボードの型番とPSRAM容量を確認する。
-2. `ESP.getPsramSize()` をSerialに出す最小スケッチを作る。
-3. MAX98357Aを `GPIO4/5/6` 仮配線で接続する。
-4. 53mm / 4Ω / 3W フルレンジスピーカーをMAX98357Aの `SPK+` / `SPK-` へ接続する。
-5. WNYC `https://fm939.wnyc.org/wnycfm` を `audio.connecttohost()` で再生する。
-6. 音量は低めから開始する。
-7. Serialログに接続先、codec、エラー、再接続状況を出す。
+2. Windowsでは現在 `COM24` として見えている。接続前に毎回COMポートは再確認する。
+3. `ESP.getPsramSize()` をSerialに出す最小スケッチを作る。
+4. MAX98357Aを `GPIO4/5/6` 仮配線で接続する。
+5. 53mm / 4Ω / 3W フルレンジスピーカーをMAX98357Aの `SPK+` / `SPK-` へ接続する。
+6. WNYC `https://fm939.wnyc.org/wnycfm` を `audio.connecttohost()` で再生する。
+7. 音量は低めから開始する。
+8. Serialログに接続先、codec、エラー、再接続状況を出す。
 
 ## Wi-Fi設定
 
-初期実験では固定SSID/passwordを使う。ただし値はrepoへ入れない。
+初期実験では、SSIDを固定文字列で決め打ちしない。
+同じ家・同じ用途で複数SSIDがあるため、ローカル設定に入れたSSID prefixだけを候補にし、ESP32 Arduinoの `Preferences` で前回接続に成功したSSIDをNVSへ保存する。
 
 推奨:
 
-- `include/config.local.h` にローカルSSID/passwordを置く。
+- `include/config.local.h` にローカルSSID prefix/passwordを置く。
 - `include/config.example.h` にはダミー値だけ置く。
 - `.gitignore` で `config.local.h` を除外する。
+- 接続成功したSSIDは `Preferences` namespace `wifi` の `last_ssid` に保存する。
+
+接続候補の優先順位:
+
+1. 周囲のSSIDを `WiFi.scanNetworks()` で走査する。
+2. 設定したprefixで始まるSSIDだけを候補にする。
+3. NVSに保存された前回成功SSIDが見つかれば最優先する。
+4. 見つからなければ、設定済みの優先SSIDを見る。
+5. それもなければ、prefix一致SSIDのうちRSSIが一番強いものを選ぶ。
+6. 接続に成功したSSIDを再び `last_ssid` として保存する。
+
+実装時の要点:
+
+```cpp
+Preferences wifiPrefs;
+
+wifiPrefs.begin("wifi", true);
+String lastSsid = wifiPrefs.getString("last_ssid", "");
+wifiPrefs.end();
+
+int networkCount = WiFi.scanNetworks();
+```
+
+```cpp
+wifiPrefs.begin("wifi", false);
+wifiPrefs.putString("last_ssid", connectedSsid);
+wifiPrefs.end();
+```
 
 ## 友人配布向けの設定構想
 

@@ -17,11 +17,19 @@
 
 1. 実ボード型番とPSRAM容量を確認する。
 2. PlatformIOプロジェクトを作る。
-3. `include/config.example.h` とgit除外の `include/config.local.h` 方針を作る。
+3. `include/config.example.h` とgit除外の `include/config.local.h` 方針を使う。
 4. 53mm / 4Ω / 3WスピーカーをMAX98357Aへ接続する。
 5. MAX98357A + WNYC の最小再生スケッチを作る。
 6. Serialログと実機結果をこのdocsへ追記する。
 7. 再生とOLED/ロータリーが安定した後、USB MSC TXT設定モードを調査する。
+
+## 2026-06-01 実機接続メモ
+
+- ESP32-S3 N16R8 dev board はWindows上で `COM24` として見えている。COMポートは接続順で変わるため、実験前に再確認する。
+- Wi-Fiは固定SSIDではなく、ローカル設定のSSID prefixで候補を絞る。
+- 複数SSIDがある環境では、単純なRSSI最強ではなく、前回成功SSIDをESP32 Arduino `Preferences` に保存して次回起動時に優先する。
+- 接続成功SSIDは `Preferences` namespace `wifi` / key `last_ssid` に保存する設計にする。
+- 実パスワードは `include/config.local.h` のみに置き、repoやAI Docsへ入れない。
 
 ## 記録ルール
 
