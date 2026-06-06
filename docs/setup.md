@@ -53,10 +53,13 @@ PlatformIOで始める場合、秘密情報は `include/config.local.h` などgi
 - WNYCが無音になる場合、OLED下段が `stream ok` のままならI2S/アンプ/電源側、`stream lost` や再接続表示ならネットワーク/ストリーム側を疑う。
 - KY-040クリックは選曲。未検証局は `not tested` と表示し、WNYC以外のHLS局は音出し安定まで自動接続しない。
 - BBC Radio 4は、WNYCの次に有効化した実機テストで音出しOK。
-- ABC NewsRadioは `stream ok` まで到達する場合があるが無音。朝の再確認でも音は出ず、選局時に10秒以上停止した。
-- NHK R1は朝の再確認でも音が出ず、最終的に完全フリーズした。
-- 常用確認版ではWNYC/BBCのみ有効化し、ABC/NHKは `not tested` 表示だけにする。ABC/NHKの再検証は、接続処理のタイムアウト/別タスク化を検討してから行う。
+- ABC NewsRadioは古い `2038310/.../master.m3u8` では404/無音だったが、AAC-LC 44.1kHz monoのmedia playlist `https://mediaserviceslive.akamaized.net/hls/live/2109425/newsradio/v0-221.m3u8` へ直結して音出しOK。
+- NHK R1はpi_radio実績URLへ戻すとPC側ではAAC/HLSとして検出できるが、media playlistに `EXT-X-KEY:METHOD=AES-128` が含まれる。ESP32実機ではまだ音が出ず、NHKは配信方式変更も多いため常用局から外す。
+- 常用確認版ではWNYC/BBC/ABCの3局だけを有効化し、KY-040短押しも3局トグルにする。`audio.setConnectionTimeout(1000, 2500)` 追加後は、ABC/NHK選局時の長時間フリーズは解消した。
+- stoppedから復帰するとき、OLED下段に `wake...` を出し、SPIFFS上の `data/wake.m4a` を音量15で鳴らす。音源は `skysea_sound_pack/reserve_notice.m4a` を採用した。
+- 効果音ファイルを更新した場合は、通常の `pio run -t upload` だけでなく `pio run -t uploadfs` も実行する。
 - KY-040長押しで通信停止/待機へ入る。停止中はOLEDの音量表示位置に `stopped`、下段に `wifi off` を出し、Wi-FiをOFFにする。KY-040を回す、または押すと復帰する。実機確認済み。
+- 2026-06-02時点では `pi_radio` のスピーカーを流用中。注文済みスピーカー到着後、2026-06-05ごろに起動時音量と復帰効果音音量を耳で再調整する。
 
 ## Wi-Fi設定
 
@@ -117,4 +120,4 @@ wifiPrefs.end();
 - まず音声再生とHLS/AAC可否を切り分ける。
 - Web設定、DNS、NVS保存を同時に入れると原因切り分けが難しくなる。
 
-追加するなら、WNYC/BBC/NHK/ABCの再生確認後にSoftAP + Web設定、またはUSB MSC TXT設定モードとして設計する。
+追加するなら、WNYC/BBC/ABCの3局運用が安定した後にSoftAP + Web設定、またはUSB MSC TXT設定モードとして設計する。

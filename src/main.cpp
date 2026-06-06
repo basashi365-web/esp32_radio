@@ -6,6 +6,7 @@
 #include <Fonts/FreeSans9pt7b.h>
 #include <Fonts/FreeSansBold12pt7b.h>
 #include <Preferences.h>
+#include <SPIFFS.h>
 #include <WiFi.h>
 #include <Wire.h>
 
@@ -40,6 +41,11 @@ constexpr unsigned long BUTTON_DEBOUNCE_MS = 250;
 constexpr unsigned long BUTTON_LONG_PRESS_MS = 1500;
 constexpr unsigned long AUDIO_RETRY_MS = 15000;
 constexpr unsigned long AUDIO_RUNNING_GRACE_MS = 10000;
+constexpr uint16_t AUDIO_CONNECT_TIMEOUT_MS = 1000;
+constexpr uint16_t AUDIO_CONNECT_TIMEOUT_SSL_MS = 2500;
+constexpr uint8_t WAKE_EFFECT_VOLUME = 15;
+constexpr unsigned long WAKE_EFFECT_TIMEOUT_MS = 6000;
+constexpr const char* WAKE_EFFECT_PATH = "/wake.m4a";
 
 struct Station {
   const char* name;
@@ -50,8 +56,7 @@ struct Station {
 Station stations[] = {
     {"WNYC FM", "https://fm939.wnyc.org/wnycfm", true},
     {"BBC R4", "https://a.files.bbci.co.uk/ms6/live/3441A116-B12E-4D2F-ACA8-C1984642FA4B/audio/simulcast/hls/nonuk/audio_syndication_low_sbr_v1/cfs/bbc_radio_fourfm.m3u8", true},
-    {"ABC", "https://mediaserviceslive.akamaized.net/hls/live/2038310/newsradio/master.m3u8", false},
-    {"NHK R1", "https://radio-stream.nhk.jp/hls/live/2023229/nhkradiruakr1/master.m3u8", false},
+    {"ABC", "https://mediaserviceslive.akamaized.net/hls/live/2109425/newsradio/v0-221.m3u8", true},
 };
 
 Audio audio;
@@ -75,6 +80,7 @@ bool stoppedMode = false;
 bool buttonWasPressed = false;
 bool longPressHandled = false;
 unsigned long buttonPressedAt = 0;
+bool effectsReady = false;
 
 struct WifiCandidate {
   String ssid;
@@ -189,6 +195,22 @@ void setupOled() {
   display.clearDisplay();
   display.display();
   drawDisplay(true);
+}
+
+void setupEffects() {
+  effectsReady = SPIFFS.begin(true);
+  if (!effectsReady) {
+    Serial.println("[effect] SPIFFS mount failed");
+    return;
+  }
+  if (!SPIFFS.exists(WAKE_EFFECT_PATH)) {
+    effectsReady = false;
+    Serial.printf("[effect] missing %s\n", WAKE_EFFECT_PATH);
+    return;
+  }
+  File wakeFile = SPIFFS.open(WAKE_EFFECT_PATH, FILE_READ);
+  Serial.printf("[effect] wake sound ready: %s size=%u\n", WAKE_EFFECT_PATH, static_cast<unsigned>(wakeFile.size()));
+  wakeFile.close();
 }
 
 int buildCandidateOrder(WifiCandidate* ordered, int maxCount) {
@@ -320,11 +342,16 @@ void startAudio() {
   Serial.printf("[audio] station: %s\n", station.name);
   Serial.printf("[audio] url: %s\n", station.url);
   audio.setVolume(currentVolume);
+  unsigned long connectStartedAt = millis();
   bool started = audio.connecttohost(station.url);
-  Serial.printf("[audio] connecttohost result=%s\n", started ? "true" : "false");
+  unsigned long connectElapsed = millis() - connectStartedAt;
+  Serial.printf("[audio] connecttohost result=%s elapsed=%lu ms\n", started ? "true" : "false", connectElapsed);
   lastAudioRetryAt = millis();
   lastStreamOkAt = started ? millis() : 0;
   streamWasRunning = false;
+  if (!started) {
+    setAudioLine("tune failed");
+  }
   drawDisplay(true);
 }
 
@@ -364,6 +391,39 @@ void enterStoppedMode() {
   drawDisplay(true);
 }
 
+void playWakeEffect() {
+  if (!effectsReady) {
+    Serial.println("[effect] wake sound skipped");
+    return;
+  }
+
+  Serial.printf("[effect] wake sound start: %s volume=%u\n", WAKE_EFFECT_PATH, WAKE_EFFECT_VOLUME);
+  audio.stopSong();
+  audio.setVolume(WAKE_EFFECT_VOLUME);
+
+  if (!audio.connecttoFS(SPIFFS, WAKE_EFFECT_PATH)) {
+    Serial.println("[effect] wake sound failed");
+    audio.stopSong();
+    audio.setVolume(currentVolume);
+    return;
+  }
+
+  unsigned long startedAt = millis();
+  while (audio.isRunning() && millis() - startedAt < WAKE_EFFECT_TIMEOUT_MS) {
+    audio.loop();
+    drawDisplay();
+    delay(1);
+  }
+
+  if (audio.isRunning()) {
+    Serial.println("[effect] wake sound timeout");
+  } else {
+    Serial.println("[effect] wake sound done");
+  }
+  audio.stopSong();
+  audio.setVolume(currentVolume);
+}
+
 void exitStoppedMode() {
   if (!stoppedMode) {
     return;
@@ -373,6 +433,7 @@ void exitStoppedMode() {
   setStatus("wifi resume");
   setAudioLine("wake...");
   drawDisplay(true);
+  playWakeEffect();
   if (!connectWifi()) {
     stoppedMode = true;
     setStatus("stopped");
@@ -498,6 +559,9 @@ void setup() {
   setupOled();
   audio.setPinout(I2S_BCLK_PIN, I2S_LRC_PIN, I2S_DOUT_PIN);
   audio.setVolume(currentVolume);
+  audio.setConnectionTimeout(AUDIO_CONNECT_TIMEOUT_MS, AUDIO_CONNECT_TIMEOUT_SSL_MS);
+  Serial.printf("[audio] connect timeout plain=%u ssl=%u\n", AUDIO_CONNECT_TIMEOUT_MS, AUDIO_CONNECT_TIMEOUT_SSL_MS);
+  setupEffects();
 
   if (!connectWifi()) {
     setStatus("wifi failed");

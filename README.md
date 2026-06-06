@@ -2,7 +2,7 @@
 
 `esp32_radio` は、完成済みの `pi_radio` を小型ESP32-S3機へ派生させるためのネットラジオ実験プロジェクトです。
 
-目標は、ESP32-S3 + MAX98357A I2Sアンプで WNYC / BBC / ABC / NHK R1 などのニュース・トーク局を再生し、後段でOLED表示、KY-040ロータリー操作、Wi-Fi設定画面を追加できる設計にすることです。
+目標は、ESP32-S3 + MAX98357A I2Sアンプで WNYC / BBC / ABC のニュース・トーク局を再生し、後段でOLED表示、KY-040ロータリー操作、Wi-Fi設定画面を追加できる設計にすることです。
 
 ## 現在の状態
 
@@ -16,7 +16,7 @@
 - MAX98357AとのI2S接続、候補局URL、OLED/ロータリー追加方針、Wi-Fi設定方式を調査済み。
 - MAX98357Aは `VIN=5V`、`SD/MODE=3.3V` で音出し確認済み。GAINはオープンのまま。
 - OLEDはI2C `0x3C` で検出済み。FreeSans系フォントの局名/音量表示を採用済み。
-- KY-040は回転で音量、短押しで選曲。未検証局は `not tested` 表示だけにして、自動接続しない。
+- KY-040は回転で音量、短押しで選曲。常用版は WNYC / BBC / ABC の3局トグル。
 - 友人へ渡す将来構想として、ESP32-S3のUSB MSC設定モードで `WIFI.TXT` / `STATIONS.TXT` をPCから編集できる方式を後段候補にする。
 - `pi_radio` との差分は、Linux/mpv/systemd/NetworkManagerではなく、ESP32ファームウェア単体で再生・操作・設定保存を行う点。
 
@@ -36,7 +36,7 @@
 2. MAX98357AをI2S 3線で接続する。
 3. 53mm / 4Ω / 3W フルレンジスピーカーを `SPK+` / `SPK-` に接続する。
 4. `ESP32-audioI2S` の初期スケッチでWNYC MP3直ストリームを再生する。
-5. OLEDへ大きい局名、中サイズの音量、小さい `stream ok` / `stream lost` / `not tested` を出す。
+5. OLEDへ大きい局名、中サイズの音量、小さい `tuning...` / `stream ok` / `stream lost` を出す。
 6. KY-040で音量変更と選曲を行う。
 7. 友人配布向けには、Web設定画面またはUSB MSC TXT設定モードを後段で検討する。
 
@@ -51,3 +51,10 @@
 - Wi-Fi SSID/passwordなどの秘密情報はこのrepoに入れない。
 - HLS/AAC局はPC上で音声検出できても、ESP32実機での再生は未確認。
 - PSRAMなしESP32-S3での動作は前提にしない。
+
+## Wake Sound
+
+- KY-040長押し停止から復帰するとき、OLED下段に `wake...` を出し、SPIFFS上の `data/wake.m4a` を音量15で短く鳴らす。
+- 音源は `D:\data\codex\shared_assets\sound_packs\skysea_sound_pack\reserve_notice.m4a` を採用した。
+- 効果音ファイルを更新した場合は、通常の `pio run -t upload` に加えて `pio run -t uploadfs` も実行する。
+- 2026-06-02時点では `pi_radio` のスピーカーを流用中。注文済みスピーカー到着後、起動時音量と復帰効果音音量を再調整する。

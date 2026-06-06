@@ -89,7 +89,7 @@ MAX98357Aは3W級のモノラルClass-Dアンプなので、初期実験の組�
 
 ## pi_radioから引き継ぐ考え方
 
-- 局候補は WNYC / BBC Radio 4 / ABC NewsRadio / NHK R1 を継承する。
+- 常用局は WNYC / BBC Radio 4 / ABC NewsRadio の3局にする。NHK R1は配信方式変更と暗号化HLSの可能性があるため、操作UIには出さない。
 - OLEDには局名、状態、IP、音量を出す。
 - OLEDは `pi_radio` と同じ GM009606v4.3 を使い、`SSD1306 128x64 / I2C 0x3C` として扱う。
 - ロータリーは回転で音量、短押しで局切替を基本にする。

@@ -57,6 +57,11 @@
 - ABC/NHKは夜間の局側状態だけでなく、`audio.connecttohost()` またはHLS処理がブロックしてUIループを止めるリスクがある。再検証は別時間帯に、まずSerialログを取りながら1局ずつ行う。
 - 2026-06-02朝にABC/NHKを再度有効化して実機確認した。ABCは音が出ず、10秒以上フリーズする。NHKも音が出ず、最終的に完全フリーズする。時間帯だけの問題ではなく、ESP32側の接続/デコード処理がUIループを巻き込む問題として扱う。
 - 常用版はWNYC/BBCのみ有効、ABC/NHKは `not tested` 表示だけに戻す。ABC/NHKを再検証する場合は、同期的な `audio.connecttohost()` を直接UIループで呼ばない設計、またはタイムアウト/別タスク化を先に検討する。
+- 2026-06-02朝の再調査で、esp32_radioに入れていたABC URL `2038310/.../master.m3u8` はPC側でも404だった。pi_radio実績のABC URL `2038311/.../index.m3u8` は `streaming.abc-cdn.net.au` へリダイレクトし、AAC音声として検出できた。
+- ESP32実機ではABCをmaster playlistではなくAAC-LC 44.1kHz monoのmedia playlist `https://mediaserviceslive.akamaized.net/hls/live/2109425/newsradio/v0-221.m3u8` へ直結したところ音出し成功。WNYC/BBC/ABCは常用局として有効化する。
+- `audio.setConnectionTimeout(1000, 2500)` を追加し、`connecttohost()` の経過時間をSerialへ出すようにした。これ以降、ABC/NHKを触っても全体フリーズは出ず、選局操作はスムーズになった。
+- NHK R1はpi_radio実績URL `https://simul.drdi.st.nhk/live/3/joined/master.m3u8` がPC側でAAC/HLSとして検出できるが、media playlistに `EXT-X-KEY:METHOD=AES-128` が含まれる。ESP32-audioI2S側で暗号化HLSが扱えない可能性があるため、現時点では常用局から外して `not tested` 扱いに戻す。
+- moriya判断でNHK R1は表示にも出さず、常用版はWNYC/BBC/ABCの3局トグルにする。NHKは今後の研究対象としてdocsには履歴を残すが、操作UIからは外す。
 
 ## 音質検討メモ
 
@@ -77,6 +82,15 @@
 - 停止中にKY-040を回す、または押すと復帰する。復帰操作そのものは音量変更や局送りには使わず、まずWi-Fi再接続と現在局の再生を試す。
 - これは `pi_radio` のshutdownではなく、ESP32版の通信停止/待機機能として扱う。
 - 実機で長押し停止と、KY-040を回す/押す操作による復帰が成功した。
+- 2026-06-02: stoppedからの復帰時に遊びとして効果音を追加した。`skysea_sound_pack` の3候補から、短く軽い `reserve_notice.m4a` を選び、`data/wake.m4a` としてSPIFFSへ格納する。
+- 復帰時はOLED下段に `wake...` を出し、効果音だけ `WAKE_EFFECT_VOLUME=15` で再生する。再生後は元の `currentVolume` に戻し、Wi-Fi再接続と現在局再生へ進む。
+- SPIFFSは `board_build.filesystem = spiffs` と `pio run -t uploadfs` で書き込む。ファーム本体とは別領域なので、効果音を変えた場合は `uploadfs` も必要。
+
+## 仮完成メモ
+
+- 2026-06-02時点で、ESP32-S3 + MAX98357A + OLED + KY-040 による WNYC / BBC / ABC の3局トグル版はひとまず完成扱いにする。
+- 現在のスピーカーは `pi_radio` のものを流用中。注文済みの 53mm / 4Ω / 3W スピーカー到着後、2026-06-05ごろを目安に音量を再調整する。
+- 次回調整対象は、起動時の `AUDIO_VOLUME_INITIAL` と、stopped復帰効果音の `WAKE_EFFECT_VOLUME`。現時点の復帰効果音は volume 15。
 
 ## 記録ルール
 
