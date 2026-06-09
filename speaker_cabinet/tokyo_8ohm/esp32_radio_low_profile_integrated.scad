@@ -71,9 +71,10 @@ encoder_shaft_hole_d = 7.4;
 lip_depth = 1.0;
 lip_clearance = 1.2;
 cover_screw_d = 3.0;
-cover_boss_d = 9.0;
 cover_screw_offset = 10.0;
-short_boss_front_clearance = 18.0;
+cover_receiver_depth = 5.0;
+cover_receiver_wall = 3.0;
+cover_receiver_overlap = 1.2;
 
 module rounded_rect_2d(w, h, r) {
   hull() {
@@ -92,15 +93,6 @@ module rounded_box(w, h, d, r) {
 module case_box(w, h, d, r) {
   translate([w / 2, h / 2, 0])
     rounded_box(w, h, d, r);
-}
-
-module standoff(x, y, z, h, od, id) {
-  translate([x, y, z])
-    difference() {
-      cylinder(h = h, d = od);
-      translate([0, 0, -0.2])
-        cylinder(h = h + 0.4, d = id);
-    }
 }
 
 module speaker_mount_holes() {
@@ -173,38 +165,34 @@ module port_tube() {
   }
 }
 
-module upper_left_short_boss_block(x, y, z, h) {
-  // Rectangular screw receiver tied into the left and top walls. The screw
-  // hole center remains at the same x/y position as the other cover bosses.
-  overlap = 1.2;
-  block_left = wall - overlap;
-  block_bottom = y - 7.0;
-  block_right = x + 8.0;
-  block_top = case_h - wall + overlap;
+module cover_screw_receiver(x, y) {
+  // Compact rectangular screw receiver near the rear opening. The receiver is
+  // tied into its two adjacent walls, while the screw hole center stays fixed.
+  hole_r = cover_screw_d / 2;
+  half = hole_r + cover_receiver_wall;
+  left_side = x < case_w / 2;
+  bottom_side = y < case_h / 2;
+  block_left = left_side ? wall - cover_receiver_overlap : x - half;
+  block_right = left_side ? x + half : case_w - wall + cover_receiver_overlap;
+  block_bottom = bottom_side ? wall - cover_receiver_overlap : y - half;
+  block_top = bottom_side ? y + half : case_h - wall + cover_receiver_overlap;
+  z = case_d - back_th - 1.5 - cover_receiver_depth;
 
   difference() {
     translate([block_left, block_bottom, z])
-      cube([block_right - block_left, block_top - block_bottom, h]);
+      cube([block_right - block_left, block_top - block_bottom, cover_receiver_depth]);
     translate([x, y, z - 0.2])
-      cylinder(h = h + 0.4, d = cover_screw_d);
+      cylinder(h = cover_receiver_depth + 0.4, d = cover_screw_d);
   }
 }
 
 module internal_features() {
   port_tube();
 
-  // Rear cover bosses. The upper-left boss starts deeper in the case so it
-  // does not crowd the volume control area on the front panel.
+  // Compact rear cover screw receivers.
   for (x = [cover_screw_offset, case_w - cover_screw_offset]) {
     for (y = [cover_screw_offset, case_h - cover_screw_offset]) {
-      is_upper_left = x == cover_screw_offset && y == case_h - cover_screw_offset;
-      boss_z = is_upper_left ? front_th + short_boss_front_clearance : front_th;
-      boss_h = case_d - boss_z - back_th - 1.5;
-      if (is_upper_left) {
-        upper_left_short_boss_block(x, y, boss_z, boss_h);
-      } else {
-        standoff(x, y, boss_z, boss_h, cover_boss_d, cover_screw_d);
-      }
+      cover_screw_receiver(x, y);
     }
   }
 }

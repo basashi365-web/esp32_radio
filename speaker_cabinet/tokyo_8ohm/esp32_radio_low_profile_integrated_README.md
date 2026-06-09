@@ -21,6 +21,7 @@ This draft combines the speaker cabinet and the ESP32 radio front controls into 
 | OLED/header opening | 12 x 4 mm rounded slot |
 | Port | 9.5 mm x 22 mm tube |
 | Rear cover lip | 1.0 mm deep, 1.2 mm clearance per side |
+| Front-shell screw receivers | 5.0 mm deep rectangular corner blocks |
 
 ## Files
 
@@ -39,6 +40,7 @@ This draft combines the speaker cabinet and the ESP32 radio front controls into 
 - Speaker screw holes are disabled until the actual tab hole positions are measured on the real unit.
 - The speaker opening is a plain 66 x 26 mm rounded through-slot; the previous inner alignment groove was removed.
 - The KY-040 has only the center shaft hole; rear pockets and extra service openings were removed.
+- The four rear-cover screw receivers are compact rectangular blocks near the rear opening, with about 3 mm of material around each screw hole.
 - The OLED board is assumed to sit outside the cabinet; only its pin header enters through the 12 x 4 mm slot.
 - The top/service cutouts were intentionally removed; add cable exits later only after the real board placement is fixed.
 - The rear cover lip was reduced from the first PETG print: the former 0.35 mm per-side clearance was too tight for the printed front shell.

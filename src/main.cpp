@@ -9,6 +9,7 @@
 #include <SPIFFS.h>
 #include <WiFi.h>
 #include <Wire.h>
+#include <esp_system.h>
 
 #if __has_include("config.local.h")
 #include "config.local.h"
@@ -32,11 +33,20 @@ constexpr int ROTARY_CLK_PIN = 10;
 constexpr int ROTARY_DT_PIN = 11;
 constexpr int ROTARY_SW_PIN = 12;
 
+constexpr int BATTERY_ADC_PIN = 1;
+constexpr float BATTERY_DIVIDER_RATIO = 2.0f;
+constexpr unsigned long BATTERY_READ_MS = 7000;
+constexpr uint8_t BATTERY_SAMPLE_COUNT = 8;
+constexpr uint8_t BATTERY_PERCENT_HYSTERESIS = 1;
+
 constexpr uint8_t AUDIO_VOLUME_MIN = 0;
 constexpr uint8_t AUDIO_VOLUME_MAX = 21;
 constexpr uint8_t AUDIO_VOLUME_INITIAL = 3;
 constexpr unsigned long WIFI_CONNECT_TIMEOUT_MS = 15000;
 constexpr unsigned long DISPLAY_UPDATE_MS = 750;
+constexpr unsigned long OLED_RETRY_MS = 3000;
+constexpr bool POWER_SETTLE_RESTART_ENABLED = false;
+constexpr unsigned long POWER_SETTLE_RESTART_DELAY_MS = 1500;
 constexpr unsigned long BUTTON_DEBOUNCE_MS = 250;
 constexpr unsigned long BUTTON_LONG_PRESS_MS = 1500;
 constexpr unsigned long AUDIO_RETRY_MS = 15000;
@@ -81,6 +91,26 @@ bool buttonWasPressed = false;
 bool longPressHandled = false;
 unsigned long buttonPressedAt = 0;
 bool effectsReady = false;
+float batteryVoltage = 0.0f;
+int batteryPercent = -1;
+unsigned long lastBatteryReadAt = 0;
+unsigned long lastOledRetryAt = 0;
+
+struct BatteryPoint {
+  float voltage;
+  uint8_t percent;
+};
+
+constexpr BatteryPoint BATTERY_CURVE[] = {
+    {3.20f, 0},
+    {3.30f, 5},
+    {3.50f, 20},
+    {3.70f, 40},
+    {3.85f, 60},
+    {4.00f, 80},
+    {4.10f, 90},
+    {4.20f, 100},
+};
 
 struct WifiCandidate {
   String ssid;
@@ -95,6 +125,64 @@ void setStatus(const String& line) {
 void setAudioLine(const String& line) {
   audioLine = line;
   Serial.printf("[audio] %s\n", audioLine.c_str());
+}
+
+void maybeRestartAfterPowerSettle() {
+  if (!POWER_SETTLE_RESTART_ENABLED) {
+    return;
+  }
+
+  esp_reset_reason_t reason = esp_reset_reason();
+  Serial.printf("[boot] reset reason=%d\n", static_cast<int>(reason));
+  if (reason != ESP_RST_POWERON && reason != ESP_RST_BROWNOUT) {
+    return;
+  }
+
+  Serial.printf("[boot] waiting %lu ms before one-shot soft restart\n", POWER_SETTLE_RESTART_DELAY_MS);
+  delay(POWER_SETTLE_RESTART_DELAY_MS);
+  Serial.println("[boot] restarting after power settle");
+  Serial.flush();
+  delay(100);
+  ESP.restart();
+}
+
+int batteryPercentFromVoltage(float voltage) {
+  if (voltage <= BATTERY_CURVE[0].voltage) {
+    return BATTERY_CURVE[0].percent;
+  }
+
+  constexpr int curveCount = static_cast<int>(sizeof(BATTERY_CURVE) / sizeof(BATTERY_CURVE[0]));
+  for (int i = 1; i < curveCount; ++i) {
+    if (voltage <= BATTERY_CURVE[i].voltage) {
+      const BatteryPoint& low = BATTERY_CURVE[i - 1];
+      const BatteryPoint& high = BATTERY_CURVE[i];
+      float t = (voltage - low.voltage) / (high.voltage - low.voltage);
+      return static_cast<int>(roundf(low.percent + t * (high.percent - low.percent)));
+    }
+  }
+
+  return BATTERY_CURVE[curveCount - 1].percent;
+}
+
+void readBattery(bool force = false) {
+  unsigned long now = millis();
+  if (!force && now - lastBatteryReadAt < BATTERY_READ_MS) {
+    return;
+  }
+  lastBatteryReadAt = now;
+
+  uint32_t totalMv = 0;
+  for (uint8_t i = 0; i < BATTERY_SAMPLE_COUNT; ++i) {
+    totalMv += analogReadMilliVolts(BATTERY_ADC_PIN);
+    delay(2);
+  }
+
+  float adcVoltage = (totalMv / static_cast<float>(BATTERY_SAMPLE_COUNT)) / 1000.0f;
+  batteryVoltage = adcVoltage * BATTERY_DIVIDER_RATIO;
+  int measuredPercent = constrain(batteryPercentFromVoltage(batteryVoltage), 0, 100);
+  if (batteryPercent < 0 || abs(measuredPercent - batteryPercent) > BATTERY_PERCENT_HYSTERESIS) {
+    batteryPercent = measuredPercent;
+  }
 }
 
 String readLastSsid() {
@@ -164,6 +252,14 @@ void drawDisplay(bool force = false) {
     display.print("Vol ");
     display.print(currentVolume);
   }
+  display.setFont(&FreeSans9pt7b);
+  display.setCursor(76, 45);
+  if (batteryPercent >= 0) {
+    display.print(batteryPercent);
+    display.print("%");
+  } else {
+    display.print("--%");
+  }
 
   display.setFont(nullptr);
   display.setTextSize(1);
@@ -171,6 +267,20 @@ void drawDisplay(bool force = false) {
   String stream = audioLine.isEmpty() ? statusLine : audioLine;
   display.print(stream.substring(0, 21));
   display.display();
+}
+
+bool beginOled() {
+  oledReady = display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR);
+  if (!oledReady) {
+    Serial.printf("[oled] not found at 0x%02X\n", OLED_ADDR);
+    return false;
+  }
+
+  Serial.printf("[oled] ready at 0x%02X SDA=%d SCL=%d\n", OLED_ADDR, OLED_SDA_PIN, OLED_SCL_PIN);
+  display.clearDisplay();
+  display.display();
+  drawDisplay(true);
+  return true;
 }
 
 void scanI2c() {
@@ -185,16 +295,26 @@ void scanI2c() {
 
 void setupOled() {
   Wire.begin(OLED_SDA_PIN, OLED_SCL_PIN);
-  scanI2c();
-  oledReady = display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR);
-  if (!oledReady) {
-    Serial.printf("[oled] not found at 0x%02X\n", OLED_ADDR);
+  delay(100);
+
+  for (uint8_t attempt = 1; attempt <= 3; ++attempt) {
+    Serial.printf("[oled] init attempt %u\n", attempt);
+    scanI2c();
+    if (beginOled()) {
+      return;
+    }
+    delay(250);
+  }
+  lastOledRetryAt = millis();
+}
+
+void maybeRetryOled() {
+  if (oledReady || millis() - lastOledRetryAt < OLED_RETRY_MS) {
     return;
   }
-  Serial.printf("[oled] ready at 0x%02X SDA=%d SCL=%d\n", OLED_ADDR, OLED_SDA_PIN, OLED_SCL_PIN);
-  display.clearDisplay();
-  display.display();
-  drawDisplay(true);
+  lastOledRetryAt = millis();
+  Serial.println("[oled] retry");
+  beginOled();
 }
 
 void setupEffects() {
@@ -320,6 +440,7 @@ void printBoardInfo() {
   Serial.printf("[i2s] DOUT=%d BCLK=%d LRC=%d\n", I2S_DOUT_PIN, I2S_BCLK_PIN, I2S_LRC_PIN);
   Serial.printf("[oled] SDA=%d SCL=%d addr=0x%02X\n", OLED_SDA_PIN, OLED_SCL_PIN, OLED_ADDR);
   Serial.printf("[rotary] CLK=%d DT=%d SW=%d\n", ROTARY_CLK_PIN, ROTARY_DT_PIN, ROTARY_SW_PIN);
+  Serial.printf("[battery] ADC GPIO=%d divider=%.2f\n", BATTERY_ADC_PIN, BATTERY_DIVIDER_RATIO);
 }
 
 void startAudio() {
@@ -547,16 +668,20 @@ void myAudioInfo(Audio::msg_t msg) {
 
 void setup() {
   Serial.begin(115200);
-  delay(1000);
+  maybeRestartAfterPowerSettle();
 
   Audio::audio_info_callback = myAudioInfo;
   pinMode(ROTARY_CLK_PIN, INPUT_PULLUP);
   pinMode(ROTARY_DT_PIN, INPUT_PULLUP);
   pinMode(ROTARY_SW_PIN, INPUT_PULLUP);
   lastRotaryClk = digitalRead(ROTARY_CLK_PIN);
+  pinMode(BATTERY_ADC_PIN, INPUT);
+  analogSetPinAttenuation(BATTERY_ADC_PIN, ADC_11db);
+  setupOled();
+  delay(250);
+  readBattery(true);
 
   printBoardInfo();
-  setupOled();
   audio.setPinout(I2S_BCLK_PIN, I2S_LRC_PIN, I2S_DOUT_PIN);
   audio.setVolume(currentVolume);
   audio.setConnectionTimeout(AUDIO_CONNECT_TIMEOUT_MS, AUDIO_CONNECT_TIMEOUT_SSL_MS);
@@ -580,5 +705,7 @@ void loop() {
   }
   pollRotary();
   maybeRetryAudio();
+  readBattery();
+  maybeRetryOled();
   drawDisplay();
 }

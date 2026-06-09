@@ -25,6 +25,40 @@ PlatformIOで始める場合、秘密情報は `include/config.local.h` などgi
 - Platform: `pioarduino/platform-espressif32` stable package。`ESP32-audioI2S` 3.x がC++20系のヘッダを使うため、標準のPlatformIO `espressif32` より新しいArduino-ESP32 3系相当を使う。
 - Build workaround: `ESP32-audioI2S` 3.4.6 の `<optional>` include漏れを避けるため `-I include` と `-include optional` を指定する。Cファイルにもflagが当たるため、`include/optional` のshimでC++時だけ標準 `<optional>` へ渡す。
 
+## PlatformIOビルド環境の固定方針
+
+このrepoのビルドでは、可能なら共通の固定PlatformIO環境を使う。
+
+グローバルPython 3.14上の `pio` は、PlatformIOやPIOArduino側の依存解決で失敗することがあるため、Python 3.11または3.12の専用venvに入れた `pio.exe` を優先する。
+
+`platformio.ini` の `platform` は現時点では `pioarduino/platform-espressif32` のstable packageを使っているが、再現性が必要になった段階では固定バージョンまたは固定コミットへ寄せる。
+
+`pio run` がC++コンパイル前に失敗した場合は、ソース修正の失敗と決めつけず、PlatformIO環境側の問題として切り分ける。例: `FRAMEWORK_DIR` が `None` になる、framework packageのパス解決で落ちる、Tool Managerの再取得直後に落ちる。
+
+2026-06-08時点で、このrepoでは以下の固定PlatformIO環境でビルドとCOM24アップロードに成功した。
+
+```powershell
+$env:PLATFORMIO_CORE_DIR = 'D:\data\codex\tools\platformio-core-py312'
+$env:PYTHONUTF8 = '1'
+$env:PYTHONIOENCODING = 'utf-8'
+& 'D:\data\codex\tools\platformio-py312\Scripts\pio.exe' run
+& 'D:\data\codex\tools\platformio-py312\Scripts\pio.exe' run -t upload
+```
+
+- Python: `D:\data\codex\tools\platformio-py312\Scripts\python.exe` / Python 3.12.13
+- PlatformIO: `D:\data\codex\tools\platformio-py312\Scripts\pio.exe` / PlatformIO Core 6.1.19
+- PlatformIO Core Dir: `D:\data\codex\tools\platformio-core-py312`
+- 切り分け結果: グローバルPython 3.14側の `pio run` はC++コンパイル前に `FRAMEWORK_DIR` が `None` になる環境エラーで失敗したが、固定Python 3.12環境ではC++コンパイル、firmware生成、COM24アップロードまで成功した。
+
+掃除はソースを消さない範囲から行う。
+
+```powershell
+Remove-Item -Recurse -Force .pio
+pio system prune --dry-run
+```
+
+`pio system prune --dry-run` の内容を確認して問題なければ、必要に応じて `pio system prune` を実行する。
+
 ## 最小実験の入口
 
 1. Windowsでは現在 `COM24` として見えている。接続前に毎回COMポートは再確認する。
